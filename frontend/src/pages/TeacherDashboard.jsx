@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { API_BASE } from "../api/config";
 import { getStoredUser, clearStoredUser } from "../auth/storage";
+import ThemeToggle from "../components/ThemeToggle";
 
 async function fetchTeacher(id) {
   const res = await fetch(`${API_BASE}/teacher/${id}`);
@@ -51,7 +52,10 @@ function TeacherDashboardView({ teacherId }) {
     return (
       <div className="dashboard-page">
         <aside className="dashboard-sidebar" aria-label="Навигация преподавателя">
-          <div className="sidebar-brand">Кабинет преподавателя</div>
+          <div className="sidebar-brand-row">
+            <div className="sidebar-brand">StepikIn Преподаватель</div>
+            <ThemeToggle />
+          </div>
           {footer}
         </aside>
         <main className="dashboard-main dashboard-main--wide">
@@ -67,7 +71,10 @@ function TeacherDashboardView({ teacherId }) {
     return (
       <div className="dashboard-page">
         <aside className="dashboard-sidebar" aria-label="Навигация преподавателя">
-          <div className="sidebar-brand">Кабинет преподавателя</div>
+          <div className="sidebar-brand-row">
+            <div className="sidebar-brand">StepikIn Преподаватель</div>
+            <ThemeToggle />
+          </div>
           {footer}
         </aside>
         <main className="dashboard-main dashboard-main--wide">
@@ -90,7 +97,10 @@ function TeacherDashboardView({ teacherId }) {
   return (
     <div className="dashboard-page">
       <aside className="dashboard-sidebar" aria-label="Навигация преподавателя">
-        <div className="sidebar-brand">Кабинет преподавателя</div>
+        <div className="sidebar-brand-row">
+          <div className="sidebar-brand">StepikIn Преподаватель</div>
+          <ThemeToggle />
+        </div>
         <nav className="sidebar-nav">
           <a href="#teacher-students" className="sidebar-link">
             Прогресс студентов
