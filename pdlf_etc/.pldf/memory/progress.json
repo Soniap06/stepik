@@ -1,18 +1,39 @@
 {
-  "currentStep": null,
-  "completedSteps": [],
-  "plannedSteps": [],
-  "stepStatus": {},
+  "currentStep": "pldf.implement",
+  "completedSteps": [
+    "pldf.concept",
+    "pldf.design",
+    "pldf.implement"
+  ],
+  "plannedSteps": [
+    "pldf.tech"
+  ],
+  "stepStatus": {
+    "pldf.concept": "completed",
+    "pldf.design": "completed",
+    "pldf.implement": "completed",
+    "pldf.tech": "planned"
+  },
   "planningMetadata": {
-    "lastPlannedStep": null,
-    "planningPhase": "initial",
-    "totalStepsEstimated": null,
-    "stepDependencies": {},
+    "lastPlannedStep": "pldf.tech",
+    "planningPhase": "implementation-complete",
+    "totalStepsEstimated": 4,
+    "stepDependencies": {
+      "pldf.design": [
+        "pldf.concept"
+      ],
+      "pldf.implement": [
+        "pldf.design"
+      ],
+      "pldf.tech": [
+        "pldf.implement"
+      ]
+    },
     "progressMetrics": {
-      "p1Coverage": {"covered": 0, "total": 0, "percentage": 0},
-      "p2Coverage": {"covered": 0, "total": 0, "percentage": 0},
-      "p3Coverage": {"covered": 0, "total": 0, "percentage": 0},
-      "overallProgress": 0
+      "p1Coverage": {"covered": 6, "total": 6, "percentage": 100},
+      "p2Coverage": {"covered": 3, "total": 3, "percentage": 100},
+      "p3Coverage": {"covered": 4, "total": 4, "percentage": 100},
+      "overallProgress": 75
     }
   }
 }
