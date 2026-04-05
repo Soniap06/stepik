@@ -104,3 +104,7 @@ def create_student(teacher_id: int, req: StudentCreate, db: Session = Depends(ge
         student.enrolled.append(course)
     db.commit(); db.refresh(student)
     return {"id":student.id,"login":student.login,"password":password,"role":"student"}
+if __name__ == "__main__":
+    import uvicorn
+    # Запускаем сервер. reload=True включает автоперезагрузку при изменении кода
+    uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
