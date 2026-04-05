@@ -5,6 +5,7 @@ import { getActiveCourses, getAverageProgress } from "../data/mockStudent";
 function Home() {
   const data = useOutletContext();
   const courses = data?.courses ?? [];
+  const stats = data?.stats ?? {};
   const displayName = data?.display_name ?? "Студент";
   const active = getActiveCourses(courses);
   const avgProgress = getAverageProgress(courses);
@@ -15,24 +16,30 @@ function Home() {
       <header className="dashboard-main-header">
         <h1 className="dashboard-welcome">Добро пожаловать, {displayName}</h1>
         <p className="dashboard-subtitle">
-          Продолжайте обучение — у вас всё хорошо получается.
+          Главный экран с приоритетом на ежедневные действия и контроль прогресса.
         </p>
       </header>
 
       <section className="dashboard-section" aria-labelledby="home-overview">
         <h2 id="home-overview" className="dashboard-section-title">
-          Краткий обзор
+          Ключевые показатели
         </h2>
-        <div className="home-overview-row">
-          <div className="overview-card">
-            <span className="overview-card__value">{active.length}</span>
-            <span className="overview-card__label">Активных курсов</span>
-            <p className="overview-card__hint">Курсы, которые ещё не завершены</p>
+        <div className="stats-row stats-row--4">
+          <div className="stat-tile">
+            <span className="stat-tile__value">{active.length}</span>
+            <span className="stat-tile__label">Активные курсы</span>
           </div>
-          <div className="overview-card">
-            <span className="overview-card__value">{avgProgress}%</span>
-            <span className="overview-card__label">Средний прогресс</span>
-            <p className="overview-card__hint">По всем курсам в списке</p>
+          <div className="stat-tile">
+            <span className="stat-tile__value">{stats.completed_courses ?? 0}</span>
+            <span className="stat-tile__label">Завершенные курсы</span>
+          </div>
+          <div className="stat-tile">
+            <span className="stat-tile__value">{avgProgress}%</span>
+            <span className="stat-tile__label">Средний прогресс</span>
+          </div>
+          <div className="stat-tile">
+            <span className="stat-tile__value">{stats.study_hours ?? 0}</span>
+            <span className="stat-tile__label">Часы обучения</span>
           </div>
         </div>
       </section>
@@ -61,6 +68,30 @@ function Home() {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="dashboard-section" aria-labelledby="home-planning">
+        <h2 id="home-planning" className="dashboard-section-title">
+          Планирование и рекомендации
+        </h2>
+        <div className="insight-grid">
+          <article className="insight-card">
+            <p className="priority-pill priority-pill--p2">P2</p>
+            <h3 className="insight-card__title">Умные рекомендации</h3>
+            <ul className="insight-list">
+              <li>Завершите модуль "React компоненты" до пятницы</li>
+              <li>Повторите SQL join перед следующей проверкой</li>
+            </ul>
+          </article>
+          <article className="insight-card">
+            <p className="priority-pill priority-pill--p3">P3</p>
+            <h3 className="insight-card__title">Личные цели</h3>
+            <ul className="insight-list">
+              <li>Цель недели: 6 часов практики</li>
+              <li>Цель недели: 2 завершенных теста</li>
+            </ul>
+          </article>
         </div>
       </section>
     </>

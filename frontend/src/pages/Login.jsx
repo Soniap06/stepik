@@ -71,7 +71,7 @@ function Login() {
       <div className="card">
         <div className="card-header">
           <h1 className="card-title">Вход</h1>
-          <p className="card-subtitle">Получите доступ к вашим курсам</p>
+          <p className="card-subtitle">Доступ к кабинету студента или преподавателя</p>
         </div>
         {error ? (
           <p className="login-error" role="alert">
@@ -113,6 +113,15 @@ function Login() {
             Войти
           </button>
         </form>
+
+        <div className="login-hint-box">
+          <p className="priority-pill priority-pill--p1">P1</p>
+          <p className="login-hint-text">Тестовые учетные записи:</p>
+          <ul className="login-hint-list">
+            <li>student / password123</li>
+            <li>teacher / teacher123</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

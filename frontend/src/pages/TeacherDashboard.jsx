@@ -117,9 +117,21 @@ function TeacherDashboardView({ teacherId }) {
             Добро пожаловать, {data.display_name}
           </h1>
           <p className="dashboard-subtitle">
-            Управление курсами и отслеживание успеваемости.
+            Риск-ориентированный обзор по студентам и курсам.
           </p>
         </header>
+
+        <section
+          className="dashboard-section"
+          aria-labelledby="teacher-priority-title"
+        >
+          <h2 id="teacher-priority-title" className="dashboard-section-title">
+            Приоритетные студенты
+          </h2>
+          <div className="notice-banner notice-banner--warn">
+            Сфокусируйтесь на студентах с прогрессом ниже 50%: это повысит общий темп группы.
+          </div>
+        </section>
 
         <section
           id="teacher-students"
@@ -264,6 +276,24 @@ function TeacherDashboardView({ teacherId }) {
                 Удалить
               </button>
             </div>
+          </div>
+
+          <div className="insight-grid" style={{ marginTop: "14px" }}>
+            <article className="insight-card">
+              <p className="priority-pill priority-pill--p2">P2</p>
+              <h3 className="insight-card__title">Очередь проверок</h3>
+              <ul className="insight-list">
+                <li>4 задания ожидают обратной связи</li>
+                <li>2 запроса на разбор ошибки в коде</li>
+              </ul>
+            </article>
+            <article className="insight-card">
+              <p className="priority-pill priority-pill--p3">P3</p>
+              <h3 className="insight-card__title">Превью тепловой карты группы</h3>
+              <p className="insight-text">
+                Дополнительный вид для анализа активности по темам и неделям.
+              </p>
+            </article>
           </div>
         </section>
       </main>
