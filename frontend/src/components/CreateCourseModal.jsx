@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { API_BASE } from "../api/config";
 
-function initialQuestions() {
-  return [0, 1, 2].map((qi) => ({
+function emptyQuestion() {
+  return {
     text: "",
-    answers: [0, 1, 2, 3].map((ai) => ({
-      text: "",
-      is_correct: qi === 0 && ai === 0,
-    })),
-  }));
+    answers: [
+      { text: "", is_correct: true },
+      { text: "", is_correct: false },
+    ],
+  };
 }
 
 export default function CreateCourseModal({
@@ -19,14 +19,20 @@ export default function CreateCourseModal({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [questions, setQuestions] = useState(initialQuestions);
+  const [theory, setTheory] = useState("");
+  const [codingTask, setCodingTask] = useState("");
+  const [codingSolution, setCodingSolution] = useState("");
+  const [questions, setQuestions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setTitle("");
       setDescription("");
-      setQuestions(initialQuestions());
+      setTheory("");
+      setCodingTask("");
+      setCodingSolution("");
+      setQuestions([]);
       setSubmitting(false);
     }
   }, [isOpen]);
@@ -46,9 +52,39 @@ export default function CreateCourseModal({
     if (e.target === e.currentTarget) onClose();
   };
 
+  const addQuestion = () => {
+    setQuestions((prev) => [...prev, emptyQuestion()]);
+  };
+
+  const removeQuestion = (qi) => {
+    setQuestions((prev) => prev.filter((_, i) => i !== qi));
+  };
+
   const setQuestionText = (qi, value) => {
     setQuestions((prev) =>
       prev.map((q, i) => (i === qi ? { ...q, text: value } : q))
+    );
+  };
+
+  const addAnswer = (qi) => {
+    setQuestions((prev) =>
+      prev.map((q, i) =>
+        i !== qi
+          ? q
+          : { ...q, answers: [...q.answers, { text: "", is_correct: false }] }
+      )
+    );
+  };
+
+  const removeAnswer = (qi, ai) => {
+    setQuestions((prev) =>
+      prev.map((q, i) => {
+        if (i !== qi) return q;
+        if (q.answers.length <= 2) return q;
+        const next = q.answers.filter((_, j) => j !== ai);
+        if (!next.some((a) => a.is_correct)) next[0] = { ...next[0], is_correct: true };
+        return { ...q, answers: next };
+      })
     );
   };
 
@@ -93,17 +129,21 @@ export default function CreateCourseModal({
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi];
       if (!q.text.trim()) {
-        window.alert(`Заполните текст вопроса ${qi + 1}`);
+        window.alert(`Заполните текст вопроса ${qi + 1} или удалите пустой вопрос`);
+        return;
+      }
+      if (q.answers.length < 2) {
+        window.alert(`Вопрос ${qi + 1}: нужно минимум два варианта ответа`);
         return;
       }
       const correct = q.answers.filter((a) => a.is_correct).length;
       if (correct !== 1) {
-        window.alert(`Выберите один правильный ответ для вопроса ${qi + 1}`);
+        window.alert(`Вопрос ${qi + 1}: отметьте ровно один правильный ответ`);
         return;
       }
       for (let ai = 0; ai < q.answers.length; ai++) {
         if (!q.answers[ai].text.trim()) {
-          window.alert(`Заполните все варианты ответа для вопроса ${qi + 1}`);
+          window.alert(`Вопрос ${qi + 1}: заполните текст всех ответов`);
           return;
         }
       }
@@ -112,6 +152,9 @@ export default function CreateCourseModal({
     const body = {
       title: t,
       description: description.trim(),
+      theory: theory.trim(),
+      coding_task: codingTask.trim(),
+      coding_solution: codingSolution.trim(),
       questions: questions.map((q) => ({
         text: q.text.trim(),
         answers: q.answers.map((a) => ({
@@ -129,8 +172,8 @@ export default function CreateCourseModal({
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || res.statusText);
+        const errText = await res.text();
+        throw new Error(errText || res.statusText);
       }
       window.alert("Курс создан");
       onClose();
@@ -190,17 +233,75 @@ export default function CreateCourseModal({
             <textarea
               id="course-desc"
               className="form-input create-course-modal__textarea"
-              rows={3}
+              rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="course-theory">
+              Теория
+            </label>
+            <textarea
+              id="course-theory"
+              className="form-input create-course-modal__textarea"
+              rows={4}
+              value={theory}
+              onChange={(e) => setTheory(e.target.value)}
+              placeholder="Лекционный материал, определения…"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="course-coding-task">
+              Практика: задание
+            </label>
+            <textarea
+              id="course-coding-task"
+              className="form-input create-course-modal__textarea"
+              rows={3}
+              value={codingTask}
+              onChange={(e) => setCodingTask(e.target.value)}
+              placeholder="Формулировка задачи для студента"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="course-coding-sol">
+              Практика: пример решения
+            </label>
+            <textarea
+              id="course-coding-sol"
+              className="form-input create-course-modal__textarea"
+              rows={3}
+              value={codingSolution}
+              onChange={(e) => setCodingSolution(e.target.value)}
+              placeholder="Образец решения (для проверки себя)"
+            />
+          </div>
+
+          <div className="create-course-modal__toolbar">
+            <button
+              type="button"
+              className="teacher-btn teacher-btn--secondary"
+              onClick={addQuestion}
+            >
+              Добавить вопрос
+            </button>
+          </div>
 
           {questions.map((q, qi) => (
             <div key={qi} className="create-course-modal__question">
-              <p className="create-course-modal__question-label">
-                Вопрос {qi + 1}
-              </p>
+              <div className="create-course-modal__question-head">
+                <p className="create-course-modal__question-label">
+                  Вопрос {qi + 1}
+                </p>
+                <button
+                  type="button"
+                  className="teacher-btn teacher-btn--danger create-course-modal__q-remove"
+                  onClick={() => removeQuestion(qi)}
+                >
+                  Удалить вопрос
+                </button>
+              </div>
               <div className="form-group">
                 <label className="form-label" htmlFor={`course-q-${qi}`}>
                   Текст вопроса <span aria-hidden="true">*</span>
@@ -232,8 +333,25 @@ export default function CreateCourseModal({
                       onChange={(e) => setAnswerText(qi, ai, e.target.value)}
                       placeholder={`Ответ ${ai + 1}`}
                     />
+                    {q.answers.length > 2 && (
+                      <button
+                        type="button"
+                        className="create-course-modal__answer-remove"
+                        onClick={() => removeAnswer(qi, ai)}
+                        aria-label="Удалить вариант"
+                      >
+                        ×
+                      </button>
+                    )}
                   </label>
                 ))}
+                <button
+                  type="button"
+                  className="teacher-btn teacher-btn--secondary create-course-modal__add-answer"
+                  onClick={() => addAnswer(qi)}
+                >
+                  Добавить вариант ответа
+                </button>
               </fieldset>
             </div>
           ))}
