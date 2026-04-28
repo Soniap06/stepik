@@ -22,6 +22,7 @@ export default function CreateCourseModal({
   const [theory, setTheory] = useState("");
   const [codingTask, setCodingTask] = useState("");
   const [codingSolution, setCodingSolution] = useState("");
+  const [testCases, setTestCases] = useState("");
   const [questions, setQuestions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,6 +33,7 @@ export default function CreateCourseModal({
       setTheory("");
       setCodingTask("");
       setCodingSolution("");
+      setTestCases("");
       setQuestions([]);
       setSubmitting(false);
     }
@@ -148,6 +150,27 @@ export default function CreateCourseModal({
         }
       }
     }
+// Validate test cases if provided
+    let tests = [];
+    if (testCases.trim()) {
+      try {
+        tests = JSON.parse(testCases);
+        if (!Array.isArray(tests)) {
+          window.alert("Тесты должны быть JSON массивом объектов {input, expected_output}");
+          return;
+        }
+        for (const test of tests) {
+          if (!test.input || typeof test.input !== 'string' || 
+              !test.expected_output || typeof test.expected_output !== 'string') {
+            window.alert("Каждый тест должен иметь поля: input (строка) и expected_output (строка)");
+            return;
+          }
+        }
+      } catch (err) {
+        window.alert("Неверный JSON в поле тестов: " + err.message);
+        return;
+      }
+    }
 
     const body = {
       title: t,
@@ -155,6 +178,7 @@ export default function CreateCourseModal({
       theory: theory.trim(),
       coding_task: codingTask.trim(),
       coding_solution: codingSolution.trim(),
+      test_cases: tests,
       questions: questions.map((q) => ({
         text: q.text.trim(),
         answers: q.answers.map((a) => ({
@@ -276,6 +300,23 @@ export default function CreateCourseModal({
               onChange={(e) => setCodingSolution(e.target.value)}
               placeholder="Образец решения (для проверки себя)"
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="course-test-cases">
+              Практика: тесты (JSON)
+            </label>
+            <textarea
+              id="course-test-cases"
+              className="form-input create-course-modal__textarea"
+              rows={4}
+              value={testCases}
+              onChange={(e) => setTestCases(e.target.value)}
+              placeholder={'[{"input": "2", "expected_output": "4"}, {"input": "3", "expected_output": "9"}]'}
+            />
+            <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
+              JSON массив объектов с полями: input (входные данные) и expected_output (ожидаемый результат)
+            </small>
           </div>
 
           <div className="create-course-modal__toolbar">

@@ -1,0 +1,565 @@
+# 🔧 /pldf.implement - Система выполнения практических заданий с тестами
+
+**Дата:** 28 апреля 2026 г.  
+**Статус:** 📋 Планируется (часть Sprint 1)  
+**Приоритет:** 🔴 Высокий (блокирует тесты)
+
+---
+
+## 🎯 Цель
+
+Реализовать полный цикл выполнения практических заданий:
+1. **Преподаватель** создаёт задание + код решения + тесты
+2. **Студент** смотрит задание → пишет код → отправляет
+3. **Система** запускает тесты против кода студента → показывает результат
+
+---
+
+## 📐 Архитектура решения
+
+### Текущее состояние:
+```
+Course
+├── coding_task (Text) - описание задания ✅
+├── coding_solution (Text) - решение преподавателя ✅
+└── ??? - нет системы для студентов писать и проверять код ❌
+```
+
+### После реализации:
+```
+Course
+├── coding_task ✅
+├── coding_solution ✅
+├── test_cases (JSON) ← НОВОЕ: примеры тестов
+└── CodeSubmission (M2M студент → попытки кода)
+    ├── student_id
+    ├── code (текст кода студента)
+    ├── created_at
+    ├── test_results (JSON: результаты тестов)
+    └── is_correct (boolean)
+```
+
+---
+
+## 🛠️ Реализация
+
+### Фаза 1: Backend Models
+
+#### 1.1 Добавить модель в `backend/app/models.py`:
+
+```python
+from datetime import datetime
+
+class CodeSubmission(Base):
+    """Попытка студента выполнить практическое задание"""
+    __tablename__ = "code_submissions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    
+    # Код студента
+    code = Column(Text, nullable=False)  # полный текст кода
+    language = Column(String, default="python")  # язык программирования
+    
+    # Результаты
+    is_correct = Column(Boolean, default=False)
+    test_results = Column(Text)  # JSON: [{"test": "...", "passed": true/false, "output": "..."}]
+    error_message = Column(Text, nullable=True)  # если ошибка компиляции
+    
+    # Метаданные
+    created_at = Column(DateTime, default=datetime.utcnow)
+    execution_time = Column(Float, nullable=True)  # время выполнения в сек
+    
+    # Связи
+    student = relationship("User")
+    course = relationship("Course")
+    
+    __table_args__ = (UniqueConstraint("student_id", "course_id", name="uq_student_course_submission"),)
+```
+
+#### 1.2 Обновить модель `Course` для хранения тестов:
+
+```python
+class Course(Base):
+    __tablename__ = "courses"
+    # ... existing fields ...
+    
+    # НОВОЕ: тесты для практики
+    test_cases = Column(Text, nullable=True)  # JSON: [{"input": "...", "expected_output": "..."}]
+    # Пример:
+    # [
+    #   {"input": "5", "expected_output": "120"},  # факториал
+    #   {"input": "0", "expected_output": "1"}
+    # ]
+```
+
+---
+
+### Фаза 2: Backend API Endpoints
+
+#### 2.1 Endpoints для работы с кодом
+
+**GET /courses/{course_id}/coding** - получить задание и попытки
+```python
+@app.get("/courses/{course_id}/coding")
+def get_coding_task(course_id: int, student_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """
+    Получить:
+    - Описание задания (coding_task)
+    - Решение преподавателя (если преподаватель)
+    - Тесты (test_cases)
+    - Попытки студента (если student_id указан)
+    """
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(404, "Course not found")
+    
+    return {
+        "id": course.id,
+        "title": course.title,
+        "task": course.coding_task or "",
+        "solution": course.coding_solution or "",  # только для преподавателя
+        "tests": json.loads(course.test_cases or "[]"),
+        "submissions": [...]  # если student_id указан
+    }
+```
+
+**POST /student/{student_id}/courses/{course_id}/submit-code** - отправить код на проверку
+```python
+@app.post("/student/{student_id}/courses/{course_id}/submit-code")
+def submit_code(
+    student_id: int,
+    course_id: int,
+    code_data: CodeSubmitRequest,  # {"code": "def factorial(n): ..."}
+    db: Session = Depends(get_db)
+):
+    """
+    1. Сохранить код студента в CodeSubmission
+    2. Запустить тесты против кода
+    3. Вернуть результаты
+    """
+    student = db.query(User).filter(User.id == student_id, User.role == "student").first()
+    course = db.query(Course).filter(Course.id == course_id).first()
+    
+    if not student or not course:
+        raise HTTPException(404, "Not found")
+    
+    # Запустить тесты
+    test_results, is_correct = run_tests(code_data.code, course.test_cases)
+    
+    # Сохранить в БД
+    submission = CodeSubmission(
+        student_id=student_id,
+        course_id=course_id,
+        code=code_data.code,
+        is_correct=is_correct,
+        test_results=json.dumps(test_results)
+    )
+    db.add(submission)
+    db.commit()
+    
+    return {
+        "success": is_correct,
+        "results": test_results,
+        "message": "All tests passed!" if is_correct else "Some tests failed"
+    }
+```
+
+**GET /student/{student_id}/courses/{course_id}/submissions** - история попыток
+```python
+@app.get("/student/{student_id}/courses/{course_id}/submissions")
+def get_submissions(student_id: int, course_id: int, db: Session = Depends(get_db)):
+    submissions = db.query(CodeSubmission).filter(
+        CodeSubmission.student_id == student_id,
+        CodeSubmission.course_id == course_id
+    ).order_by(CodeSubmission.created_at.desc()).all()
+    
+    return [{
+        "id": s.id,
+        "code": s.code,
+        "is_correct": s.is_correct,
+        "results": json.loads(s.test_results or "[]"),
+        "created_at": s.created_at.isoformat()
+    } for s in submissions]
+```
+
+#### 2.2 Endpoint для создания/обновления тестов (преподаватель)
+
+**POST /teacher/{teacher_id}/courses/{course_id}/tests/update** - обновить тесты
+```python
+@app.post("/teacher/{teacher_id}/courses/{course_id}/tests/update")
+def update_tests(teacher_id: int, course_id: int, tests_data: TestsUpdateRequest, db: Session = Depends(get_db)):
+    """
+    Обновить test_cases для курса
+    """
+    course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.teacher_id == teacher_id
+    ).first()
+    
+    if not course:
+        raise HTTPException(404, "Course not found or not yours")
+    
+    course.test_cases = json.dumps(tests_data.tests)  # сохранить JSON
+    db.commit()
+    
+    return {"message": "Tests updated"}
+```
+
+---
+
+### Фаза 3: Code Execution Engine
+
+#### 3.1 Функция для запуска тестов (`backend/app/utils.py`)
+
+```python
+import subprocess
+import json
+import tempfile
+import os
+
+def run_tests(student_code: str, test_cases_json: str) -> tuple[list, bool]:
+    """
+    Запустить тесты для кода студента
+    Возвращает: (результаты тестов, все ли прошли)
+    """
+    test_cases = json.loads(test_cases_json or "[]")
+    results = []
+    all_passed = True
+    
+    # Создать временный файл с кодом студента
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(student_code)
+        code_file = f.name
+    
+    try:
+        for i, test in enumerate(test_cases):
+            test_input = test.get("input", "")
+            expected_output = test.get("expected_output", "")
+            
+            try:
+                # Запустить код с input'ом
+                result = subprocess.run(
+                    ["python", code_file],
+                    input=test_input,
+                    capture_output=True,
+                    text=True,
+                    timeout=5  # 5 секунд таймаут
+                )
+                
+                actual_output = result.stdout.strip()
+                passed = actual_output == expected_output
+                
+                if not passed:
+                    all_passed = False
+                
+                results.append({
+                    "test_number": i + 1,
+                    "input": test_input,
+                    "expected": expected_output,
+                    "actual": actual_output,
+                    "passed": passed,
+                    "error": result.stderr if result.returncode != 0 else None
+                })
+            
+            except subprocess.TimeoutExpired:
+                all_passed = False
+                results.append({
+                    "test_number": i + 1,
+                    "passed": False,
+                    "error": "Timeout: code execution took too long"
+                })
+            
+            except Exception as e:
+                all_passed = False
+                results.append({
+                    "test_number": i + 1,
+                    "passed": False,
+                    "error": str(e)
+                })
+    
+    finally:
+        # Удалить временный файл
+        if os.path.exists(code_file):
+            os.unlink(code_file)
+    
+    return results, all_passed
+```
+
+⚠️ **Безопасность:** Для production нужно использовать sandboxing (Docker, seccomp, или сервис типа Judge0)
+
+---
+
+### Фаза 4: Frontend Components
+
+#### 4.1 Создать `frontend/src/components/CodeEditor.jsx`
+
+```jsx
+import React, { useState } from 'react';
+
+function CodeEditor({ courseId, studentId, task, tests, onSubmit }) {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [showTests, setShowTests] = useState(false);
+  
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE}/student/${studentId}/courses/${courseId}/submit-code`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        }
+      );
+      
+      const data = await response.json();
+      setResults(data);
+      setShowTests(true);
+    } catch (error) {
+      console.error('Submission error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <div className="code-editor-container">
+      <div className="task-panel">
+        <h3>Задание:</h3>
+        <p>{task}</p>
+        
+        <h4>Примеры тестов:</h4>
+        <ul>
+          {tests.map((test, i) => (
+            <li key={i}>
+              Input: {test.input} → Expected: {test.expected_output}
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      <div className="editor-panel">
+        <textarea
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Пишите код здесь..."
+          className="code-textarea"
+        />
+        
+        <button 
+          onClick={handleSubmit}
+          disabled={loading || !code.trim()}
+          className="submit-button"
+        >
+          {loading ? 'Проверяю...' : 'Отправить на проверку'}
+        </button>
+      </div>
+      
+      {results && (
+        <div className="results-panel">
+          <h3>{results.success ? '✅ Все тесты пройдены!' : '❌ Некоторые тесты не прошли'}</h3>
+          {results.results.map((result, i) => (
+            <div key={i} className={`test-result ${result.passed ? 'passed' : 'failed'}`}>
+              <p>Тест {result.test_number}: {result.passed ? '✅' : '❌'}</p>
+              <p>Input: {result.input}</p>
+              <p>Expected: {result.expected}</p>
+              <p>Actual: {result.actual || result.error}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default CodeEditor;
+```
+
+#### 4.2 Обновить `frontend/src/pages/CoursePage.jsx`
+
+```jsx
+// Добавить вкладку для практики
+<div className="tabs">
+  <button onClick={() => setTab('content')}>Материалы</button>
+  <button onClick={() => setTab('questions')}>Вопросы</button>
+  <button onClick={() => setTab('coding')}>Практика</button>
+  <button onClick={() => setTab('tests')}>Тесты</button>
+</div>
+
+{tab === 'coding' && (
+  <CodeEditor
+    courseId={courseId}
+    studentId={studentId}
+    task={course.coding_task}
+    tests={course.tests}
+    onSubmit={handleCodeSubmit}
+  />
+)}
+```
+
+#### 4.3 Обновить `frontend/src/components/CreateCourseModal.jsx`
+
+```jsx
+// Добавить поля для тестов в форму создания курса
+<div className="form-group">
+  <label>Тесты (JSON формат)</label>
+  <textarea
+    value={testCases}
+    onChange={(e) => setTestCases(e.target.value)}
+    placeholder={`[
+  {"input": "5", "expected_output": "120"},
+  {"input": "0", "expected_output": "1"}
+]`}
+  />
+</div>
+
+// При отправке:
+const testsData = JSON.parse(testCases || "[]");
+// ... отправить на backend
+```
+
+---
+
+## 📊 Схема данных (SQL)
+
+```sql
+-- Добавить таблицу
+CREATE TABLE code_submissions (
+    id INTEGER PRIMARY KEY,
+    student_id INTEGER NOT NULL FOREIGN KEY REFERENCES users(id),
+    course_id INTEGER NOT NULL FOREIGN KEY REFERENCES courses(id),
+    code TEXT NOT NULL,
+    language TEXT DEFAULT 'python',
+    is_correct BOOLEAN DEFAULT 0,
+    test_results TEXT,  -- JSON
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    execution_time FLOAT,
+    UNIQUE(student_id, course_id)
+);
+
+-- Обновить таблицу courses
+ALTER TABLE courses ADD COLUMN test_cases TEXT;  -- JSON
+```
+
+---
+
+## 🔄 Полный цикл работы
+
+```
+1. Преподаватель создаёт курс:
+   ├── Задание (coding_task)
+   ├── Решение (coding_solution)
+   └── Тесты (test_cases JSON)
+
+2. Студент открывает курс → вкладка "Практика"
+   ├── Видит задание
+   ├── Видит примеры тестов
+   └── Пишет код в редакторе
+
+3. Студент отправляет код
+   ├── Backend запускает тесты (run_tests)
+   ├── Сравнивает вывод с expected_output
+   └── Сохраняет попытку (CodeSubmission)
+
+4. Система показывает результаты:
+   ├── ✅ Все тесты пройдены → курс засчитан
+   ├── ❌ Некоторые тесты не прошли → показать какие
+   └── Студент может попробовать ещё
+
+5. История попыток
+   ├── Видны все попытки студента
+   ├── Лучший результат выделен
+   └── Преподаватель видит статистику
+```
+
+---
+
+## 🚨 Безопасность
+
+### Текущие риски:
+- ❌ Выполнение произвольного Python кода на сервере (RCE уязвимость!)
+- ❌ Бесконечные циклы / DoS атаки
+- ❌ Доступ к файловой системе
+
+### Решения:
+1. **Sandboxing:** Использовать Docker контейнеры
+2. **Таймауты:** Ограничить время выполнения (уже есть 5 сек)
+3. **Resource limits:** Ограничить память, CPU
+4. **Белый список:** Только безопасные функции
+5. **Альтернатива:** Использовать Judge0 API (готовое решение)
+
+---
+
+## 📋 Чек-лист реализации
+
+### Backend:
+- [ ] Добавить модель CodeSubmission
+- [ ] Обновить Course (test_cases)
+- [ ] Реализовать run_tests()
+- [ ] Создать 3+ endpoints
+- [ ] Добавить валидацию JSON для тестов
+- [ ] Добавить логирование ошибок
+- [ ] Протестировать на примерах
+
+### Frontend:
+- [ ] Создать CodeEditor.jsx
+- [ ] Обновить CreateCourseModal.jsx
+- [ ] Обновить CoursePage.jsx
+- [ ] Добавить вкладку "Практика"
+- [ ] Стили для редактора кода
+- [ ] Обработка ошибок и loading states
+
+### Testing:
+- [ ] Unit-тесты для run_tests()
+- [ ] Integration-тесты для endpoints
+- [ ] E2E-тесты для полного цикла
+- [ ] Безопасность: попытка RCE
+
+### Documentation:
+- [ ] API документация
+- [ ] Примеры тестов для преподавателей
+- [ ] Инструкция по использованию
+
+---
+
+## 🎯 Ожидаемые результаты
+
+✅ **После реализации:**
+- Преподаватели могут создавать практические задания с тестами
+- Студенты могут писать и проверять код в браузере
+- Система автоматически проверяет результаты
+- История всех попыток сохраняется
+- Система готова к использованию в реальных курсах
+
+---
+
+## 🔗 Связанные файлы
+
+- Backend: `backend/app/main.py`, `backend/app/models.py`, `backend/app/utils.py`
+- Frontend: `frontend/src/components/CodeEditor.jsx`, `frontend/src/pages/CoursePage.jsx`
+- Tests: `backend/app/tests/test_code_execution.py`
+- Database: `course_platform.db`
+
+---
+
+## ⏱️ Временная оценка
+
+- Backend Models: 0.5 дня
+- Endpoints & run_tests: 1 день
+- Frontend Components: 1 день
+- Testing & Debugging: 0.5 дня
+- **Итого: ~3 дня** (часть Sprint 1)
+
+---
+
+## 🚀 Next Steps
+
+После реализации этой фичи:
+1. Добавить Spaced Repetition для карточек (Sprint 2)
+2. Добавить Gradebook для преподавателя
+3. Экспорт результатов в CSV/PDF
