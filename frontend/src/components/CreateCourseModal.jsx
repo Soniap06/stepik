@@ -23,6 +23,7 @@ export default function CreateCourseModal({
   const [codingTask, setCodingTask] = useState("");
   const [codingSolution, setCodingSolution] = useState("");
   const [testCases, setTestCases] = useState("");
+  const [flashcards, setFlashcards] = useState("");
   const [questions, setQuestions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -34,6 +35,7 @@ export default function CreateCourseModal({
       setCodingTask("");
       setCodingSolution("");
       setTestCases("");
+      setFlashcards("");
       setQuestions([]);
       setSubmitting(false);
     }
@@ -172,6 +174,28 @@ export default function CreateCourseModal({
       }
     }
 
+    // Validate flashcards if provided
+    let cards = [];
+    if (flashcards.trim()) {
+      try {
+        cards = JSON.parse(flashcards);
+        if (!Array.isArray(cards)) {
+          window.alert("Карточки должны быть JSON массивом объектов {question, answer}");
+          return;
+        }
+        for (const card of cards) {
+          if (!card.question || typeof card.question !== 'string' || 
+              !card.answer || typeof card.answer !== 'string') {
+            window.alert("Каждая карточка должна иметь поля: question (строка) и answer (строка)");
+            return;
+          }
+        }
+      } catch (err) {
+        window.alert("Неверный JSON в поле карточек: " + err.message);
+        return;
+      }
+    }
+
     const body = {
       title: t,
       description: description.trim(),
@@ -179,6 +203,7 @@ export default function CreateCourseModal({
       coding_task: codingTask.trim(),
       coding_solution: codingSolution.trim(),
       test_cases: tests,
+      flashcards: cards,
       questions: questions.map((q) => ({
         text: q.text.trim(),
         answers: q.answers.map((a) => ({
@@ -316,6 +341,23 @@ export default function CreateCourseModal({
             />
             <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
               JSON массив объектов с полями: input (входные данные) и expected_output (ожидаемый результат)
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="course-flashcards">
+              Карточки для запоминания (JSON)
+            </label>
+            <textarea
+              id="course-flashcards"
+              className="form-input create-course-modal__textarea"
+              rows={4}
+              value={flashcards}
+              onChange={(e) => setFlashcards(e.target.value)}
+              placeholder={'[{"question": "Что такое переменная?", "answer": "Переменная - это..."}, {"question": "Что такое функция?", "answer": "Функция - это..."}]'}
+            />
+            <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
+              JSON массив объектов с полями: question (вопрос) и answer (ответ)
             </small>
           </div>
 

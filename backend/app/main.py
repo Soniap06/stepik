@@ -114,6 +114,23 @@ class CodeSubmission(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     execution_time = Column(Float, nullable=True)
 
+class Flashcard(Base):
+    __tablename__ = "flashcards"
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    cards = Column(Text, nullable=False)  # JSON: [{"question": "...", "answer": "..."}]
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class FlashcardProgress(Base):
+    __tablename__ = "flashcard_progress"
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    card_index = Column(Integer, nullable=False)
+    confidence = Column(String, nullable=False)  # "still_learning", "almost_there", "mastered"
+    reviewed_at = Column(DateTime, default=datetime.utcnow)
+
 class LoginRequest(BaseModel):
     login: str; password: str
 
@@ -135,6 +152,7 @@ class CourseCreate(BaseModel):
     coding_task: str = ""
     coding_solution: str = ""
     test_cases: List[TestCaseIn] = []
+    flashcards: List[FlashcardCardIn] = []
     questions: List[QuestionIn] = []
 
 class AnswerCheckIn(BaseModel):
@@ -150,6 +168,17 @@ class TestCaseIn(BaseModel):
 
 class TestCasesUpdateRequest(BaseModel):
     tests: List[TestCaseIn]
+
+class FlashcardCardIn(BaseModel):
+    question: str
+    answer: str
+
+class FlashcardCreateRequest(BaseModel):
+    cards: List[FlashcardCardIn]
+
+class FlashcardProgressRequest(BaseModel):
+    card_index: int
+    confidence: str  # "still_learning", "almost_there", "mastered"
 
 app = FastAPI(title="Course Platform")
 
@@ -263,6 +292,15 @@ def get_student_course_content(student_id: int, course_id: int, db: Session = De
         except:
             tests = []
     
+    # Parse flashcards from database
+    flashcards = []
+    flashcard_row = db.query(Flashcard).filter(Flashcard.course_id==course_id).first()
+    if flashcard_row:
+        try:
+            flashcards = json.loads(flashcard_row.cards)
+        except:
+            flashcards = []
+    
     return {
         "id": course.id,
         "title": course.title,
@@ -271,6 +309,7 @@ def get_student_course_content(student_id: int, course_id: int, db: Session = De
         "coding_task": course.coding_task or "",
         "coding_solution": course.coding_solution or "",
         "tests": tests,
+        "flashcards": flashcards,
         "questions": questions_out,
         "progress": get_student_course_progress(db, student_id, course_id),
         "solved_question_ids": solved_ids,
@@ -386,6 +425,15 @@ def create_teacher_course(teacher_id: int, req: CourseCreate, db: Session = Depe
         teacher_id=teacher_id,
     )
     db.add(course); db.flush()
+    
+    # Create flashcards if provided
+    if req.flashcards:
+        flashcard = Flashcard(
+            course_id=course.id,
+            cards=json.dumps([{"question": card.question, "answer": card.answer} for card in req.flashcards])
+        )
+        db.add(flashcard)
+    
     for q in req.questions:
         qt = (q.text or "").strip()
         if not qt: raise HTTPException(400, "Текст вопроса не может быть пустым")
@@ -496,7 +544,7 @@ def submit_code(student_id: int, course_id: int, code_data: CodeSubmitRequest, d
     return {
         "success": is_correct,
         "results": test_results,
-        "message": "✅ Все тесты пройдены!" if is_correct else "❌ Некоторые тесты не прошли",
+        "message": "Все тесты пройдены!" if is_correct else "Некоторые тесты не прошли",
         "submission_id": submission.id,
         "execution_time": exec_time
     }
@@ -539,6 +587,122 @@ def update_tests(teacher_id: int, course_id: int, tests_data: TestCasesUpdateReq
     db.commit()
     
     return {"message": "✅ Тесты обновлены", "count": len(tests_data.tests)}
+
+@app.post("/teacher/{teacher_id}/courses/{course_id}/flashcards")
+def create_flashcards(teacher_id: int, course_id: int, req: FlashcardCreateRequest, db: Session = Depends(get_db)):
+    """Создать или обновить карточки для курса (только для преподавателя)"""
+    course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.teacher_id == teacher_id
+    ).first()
+    
+    if not course:
+        raise HTTPException(404, "Курс не найден или не ваш")
+    
+    if not req.cards:
+        raise HTTPException(400, "Нужна минимум одна карточка")
+    
+    # Проверить, что все карточки имеют непустые вопрос и ответ
+    for card in req.cards:
+        if not card.question.strip():
+            raise HTTPException(400, "Вопрос не может быть пустым")
+        if not card.answer.strip():
+            raise HTTPException(400, "Ответ не может быть пустым")
+    
+    # Проверить есть ли уже карточки для этого курса
+    existing = db.query(Flashcard).filter(Flashcard.course_id == course_id).first()
+    if existing:
+        existing.cards = json.dumps([{"question": card.question, "answer": card.answer} for card in req.cards])
+        existing.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing)
+        return {"flashcard_id": existing.id, "message": "Карточки обновлены", "count": len(req.cards)}
+    else:
+        flashcard = Flashcard(
+            course_id=course_id,
+            cards=json.dumps([{"question": card.question, "answer": card.answer} for card in req.cards])
+        )
+        db.add(flashcard)
+        db.commit()
+        db.refresh(flashcard)
+        return {"flashcard_id": flashcard.id, "message": "Карточки созданы", "count": len(req.cards)}
+
+@app.get("/courses/{course_id}/flashcards")
+def get_flashcards(course_id: int, db: Session = Depends(get_db)):
+    """Получить карточки для курса"""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(404, "Курс не найден")
+    
+    flashcard = db.query(Flashcard).filter(Flashcard.course_id == course_id).first()
+    if not flashcard:
+        return {"cards": [], "total": 0}
+    
+    try:
+        cards = json.loads(flashcard.cards)
+    except:
+        cards = []
+    
+    return {"cards": cards, "total": len(cards)}
+
+@app.post("/student/{student_id}/courses/{course_id}/flashcard-progress")
+def save_flashcard_progress(student_id: int, course_id: int, req: FlashcardProgressRequest, db: Session = Depends(get_db)):
+    """Сохранить прогресс по карточке"""
+    student = db.query(User).filter(User.id == student_id, User.role == "student").first()
+    if not student:
+        raise HTTPException(404, "Студент не найден")
+    
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(404, "Курс не найден")
+    
+    if course not in student.enrolled:
+        raise HTTPException(403, "Вы не записаны на этот курс")
+    
+    if req.confidence not in ["still_learning", "almost_there", "mastered"]:
+        raise HTTPException(400, "Некорректный уровень уверенности")
+    
+    # Сохранить или обновить прогресс
+    existing = db.query(FlashcardProgress).filter(
+        FlashcardProgress.student_id == student_id,
+        FlashcardProgress.course_id == course_id,
+        FlashcardProgress.card_index == req.card_index
+    ).first()
+    
+    if existing:
+        existing.confidence = req.confidence
+        existing.reviewed_at = datetime.utcnow()
+    else:
+        progress = FlashcardProgress(
+            student_id=student_id,
+            course_id=course_id,
+            card_index=req.card_index,
+            confidence=req.confidence
+        )
+        db.add(progress)
+    
+    db.commit()
+    return {"message": "Прогресс сохранён"}
+
+@app.get("/student/{student_id}/courses/{course_id}/flashcard-progress")
+def get_flashcard_progress(student_id: int, course_id: int, db: Session = Depends(get_db)):
+    """Получить прогресс по карточкам"""
+    student = db.query(User).filter(User.id == student_id, User.role == "student").first()
+    if not student:
+        raise HTTPException(404, "Студент не найден")
+    
+    progress_records = db.query(FlashcardProgress).filter(
+        FlashcardProgress.student_id == student_id,
+        FlashcardProgress.course_id == course_id
+    ).all()
+    
+    return {
+        "progress": [{
+            "card_index": p.card_index,
+            "confidence": p.confidence,
+            "reviewed_at": p.reviewed_at.isoformat()
+        } for p in progress_records]
+    }
 
 if __name__ == "__main__":
     import uvicorn

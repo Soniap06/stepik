@@ -9,6 +9,8 @@ function CodeEditor({ courseId, studentId, task, tests }) {
   const [submissions, setSubmissions] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [bestSubmission, setBestSubmission] = useState(null);
+  const visibleTests = Array.isArray(tests) ? tests.slice(0, 3) : [];
+  const hasHiddenTests = Array.isArray(tests) && tests.length > 3;
 
   useEffect(() => {
     // Загрузить историю попыток
@@ -67,7 +69,7 @@ function CodeEditor({ courseId, studentId, task, tests }) {
       
       if (data.success) {
         setCode('');
-        alert('✅ Все тесты пройдены!');
+        alert('Все тесты пройдены!');
       }
     } catch (error) {
       console.error('Submission error:', error);
@@ -90,8 +92,8 @@ function CodeEditor({ courseId, studentId, task, tests }) {
 
             <div className="section-title">Примеры тестов</div>
             <div className="tests-list">
-              {tests && tests.length > 0 ? (
-                tests.map((test, i) => (
+              {visibleTests.length > 0 ? (
+                visibleTests.map((test, i) => (
                   <div key={i} className="test-card">
                     <div className="test-label">Ввод</div>
                     <div className="test-value">{test.input}</div>
@@ -103,6 +105,7 @@ function CodeEditor({ courseId, studentId, task, tests }) {
                 <div className="empty-state">Нет примеров тестов</div>
               )}
             </div>
+            
 
             {bestSubmission && (
               <div className="best-card">

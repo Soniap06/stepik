@@ -4,7 +4,9 @@ import { API_BASE } from "../api/config";
 import { getStoredUser } from "../auth/storage";
 import ThemeToggle from "../components/ThemeToggle";
 import CodeEditor from "../components/CodeEditor";
+import FlashcardStudy from "../components/FlashcardStudy";
 import "../styles/code-editor.css";
+import "../styles/flashcard.css";
 
 export default function CoursePage() {
   const { id } = useParams();
@@ -289,6 +291,16 @@ export default function CoursePage() {
             />
           </section>
         ) : null}
+
+        <section className="dashboard-section" aria-labelledby="course-flashcards">
+          <h2 id="course-flashcards" className="dashboard-section-title">
+            Карточки для запоминания
+          </h2>
+          <FlashcardStudy
+            courseId={courseId}
+            studentId={user.id}
+          />
+        </section>
       </main>
     </div>
   );
