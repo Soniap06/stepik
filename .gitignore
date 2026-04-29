@@ -53,4 +53,4 @@ Desktop.ini
 .idea/
 
 # Ai API key
-backend/alembic/config.py
+backend/config.py

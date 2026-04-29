@@ -33,6 +33,8 @@ import uuid, os, json
 from datetime import datetime
 from dotenv import load_dotenv
 from app.utils import run_tests
+from config import API_KEY
+from gigachat import GigaChat
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./course_platform.db")
@@ -180,7 +182,38 @@ class FlashcardProgressRequest(BaseModel):
     card_index: int
     confidence: str  # "still_learning", "almost_there", "mastered"
 
+class AssistantGenerateRequest(BaseModel):
+    mode: str  # "tests", "questions", "flashcards"
+    text: str
+
 app = FastAPI(title="Course Platform")
+
+def build_assistant_prompt(mode: str, text: str) -> Optional[str]:
+    base = "Отвечай строго в формате JSON без пояснений и без обрамления."
+    if mode == "tests":
+        return (
+            f"{base}\n"
+            "Сгенерируй набор тестов для задания.\n"
+            "Формат: [{\"input\": \"...\", \"expected_output\": \"...\"}, ...]\n"
+            "input и expected_output всегда строки.\n"
+            f"Задание: {text}"
+        )
+    if mode == "questions":
+        return (
+            f"{base}\n"
+            "Сгенерируй вопросы по теории с вариантами ответов.\n"
+            "Формат: [{\"text\": \"...\", \"answers\": [{\"text\": \"...\", \"is_correct\": true/false}, ...]}, ...]\n"
+            "В каждом вопросе ровно один правильный ответ, минимум 4 ответа.\n"
+            f"Теория: {text}"
+        )
+    if mode == "flashcards":
+        return (
+            f"{base}\n"
+            "Сгенерируй карточки для запоминания.\n"
+            "Формат: [{\"question\": \"...\", \"answer\": \"...\"}, ...]\n"
+            f"Теория: {text}"
+        )
+    return None
 
 def _migrate_schema():
     Base.metadata.create_all(bind=engine)
@@ -464,6 +497,30 @@ def create_student(teacher_id: int, req: StudentCreate, db: Session = Depends(ge
         student.enrolled.append(course)
     db.commit(); db.refresh(student)
     return {"id":student.id,"login":student.login,"password":password,"role":"student"}
+
+@app.post("/teacher/{teacher_id}/assistant/generate")
+def generate_assistant_content(teacher_id: int, req: AssistantGenerateRequest, db: Session = Depends(get_db)):
+    teacher = db.query(User).filter(User.id==teacher_id, User.role=="teacher").first()
+    if not teacher:
+        raise HTTPException(404, "Преподаватель не найден")
+    if not req.text.strip():
+        raise HTTPException(400, "Введите описание для генерации")
+
+    prompt = build_assistant_prompt(req.mode, req.text.strip())
+    if not prompt:
+        raise HTTPException(400, "Некорректный режим")
+
+    if not API_KEY:
+        raise HTTPException(500, "API ключ GigaChat не настроен")
+
+    try:
+        with GigaChat(credentials=API_KEY, verify_ssl_certs=False) as giga:
+            response = giga.chat(prompt)
+        content = response.choices[0].message.content if response and response.choices else ""
+    except Exception as exc:
+        raise HTTPException(500, f"Ошибка GigaChat: {exc}")
+
+    return {"result": content}
 
 @app.get("/courses/{course_id}/coding")
 def get_coding_task(course_id: int, student_id: Optional[int] = None, db: Session = Depends(get_db)):

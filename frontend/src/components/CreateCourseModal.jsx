@@ -24,6 +24,11 @@ export default function CreateCourseModal({
   const [codingSolution, setCodingSolution] = useState("");
   const [testCases, setTestCases] = useState("");
   const [flashcards, setFlashcards] = useState("");
+  const [aiMode, setAiMode] = useState("tests");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiResult, setAiResult] = useState("");
+  const [aiError, setAiError] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,6 +41,11 @@ export default function CreateCourseModal({
       setCodingSolution("");
       setTestCases("");
       setFlashcards("");
+      setAiMode("tests");
+      setAiPrompt("");
+      setAiResult("");
+      setAiError(null);
+      setAiLoading(false);
       setQuestions([]);
       setSubmitting(false);
     }
@@ -121,6 +131,64 @@ export default function CreateCourseModal({
             }
       )
     );
+  };
+
+  const normalizeAiText = (text) =>
+    text.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      window.alert("Введите описание для генерации");
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/teacher/${teacherId}/assistant/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: aiMode, text: aiPrompt.trim() }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setAiResult(normalizeAiText(data.result || ""));
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Ошибка генерации");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAiResult = () => {
+    const text = normalizeAiText(aiResult);
+    if (!text) {
+      window.alert("Нет результата для вставки");
+      return;
+    }
+
+    if (aiMode === "tests") {
+      setTestCases(text);
+      return;
+    }
+    if (aiMode === "flashcards") {
+      setFlashcards(text);
+      return;
+    }
+    if (aiMode === "questions") {
+      try {
+        const data = JSON.parse(text);
+        if (!Array.isArray(data)) {
+          window.alert("Ожидается JSON массив вопросов");
+          return;
+        }
+        setQuestions(data);
+      } catch (err) {
+        window.alert("Неверный JSON для вопросов: " + err.message);
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -299,6 +367,79 @@ export default function CreateCourseModal({
               onChange={(e) => setTheory(e.target.value)}
               placeholder="Лекционный материал, определения…"
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="ai-helper-mode">
+              AI помощник (GigaChat)
+            </label>
+            <select
+              id="ai-helper-mode"
+              className="form-input"
+              value={aiMode}
+              onChange={(e) => setAiMode(e.target.value)}
+            >
+              <option value="tests">Тесты для практики</option>
+              <option value="questions">Вопросы к теории</option>
+              <option value="flashcards">Флеш-карточки</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="ai-helper-prompt">
+              Текст для генерации
+            </label>
+            <textarea
+              id="ai-helper-prompt"
+              className="form-input create-course-modal__textarea"
+              rows={3}
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder={
+                aiMode === "tests"
+                  ? "Опишите практическое задание для генерации тестов"
+                  : "Вставьте теорию для генерации вопросов или карточек"
+              }
+            />
+            <div className="create-course-modal__toolbar">
+              <button
+                type="button"
+                className="teacher-btn teacher-btn--secondary"
+                onClick={handleAiGenerate}
+                disabled={aiLoading}
+              >
+                {aiLoading ? "Генерация..." : "Сгенерировать"}
+              </button>
+            </div>
+            {aiError && (
+              <small style={{ color: "#b91c1c", display: "block", marginTop: "6px" }}>
+                {aiError}
+              </small>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="ai-helper-result">
+              Результат генерации
+            </label>
+            <textarea
+              id="ai-helper-result"
+              className="form-input create-course-modal__textarea"
+              rows={4}
+              value={aiResult}
+              onChange={(e) => setAiResult(e.target.value)}
+              placeholder="Результат появится здесь"
+            />
+            <div className="create-course-modal__toolbar">
+              <button
+                type="button"
+                className="teacher-btn teacher-btn--secondary"
+                onClick={applyAiResult}
+                disabled={!aiResult.trim()}
+              >
+                Вставить в курс
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="course-coding-task">
