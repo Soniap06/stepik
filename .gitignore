@@ -51,3 +51,6 @@ Desktop.ini
 *.swo
 *~
 .idea/
+
+# Ai API key
+backend/config.py

@@ -3,6 +3,10 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { API_BASE } from "../api/config";
 import { getStoredUser } from "../auth/storage";
 import ThemeToggle from "../components/ThemeToggle";
+import CodeEditor from "../components/CodeEditor";
+import FlashcardStudy from "../components/FlashcardStudy";
+import "../styles/code-editor.css";
+import "../styles/flashcard.css";
 
 export default function CoursePage() {
   const { id } = useParams();
@@ -277,22 +281,26 @@ export default function CoursePage() {
         {data.coding_task || data.coding_solution ? (
           <section className="dashboard-section" aria-labelledby="course-code">
             <h2 id="course-code" className="dashboard-section-title">
-              Практика
+              💻 Практика с кодом
             </h2>
-            {data.coding_task ? (
-              <div className="course-page__block">
-                <h3 className="course-page__subhead">Задание</h3>
-                <pre className="course-page__pre">{data.coding_task}</pre>
-              </div>
-            ) : null}
-            {data.coding_solution ? (
-              <div className="course-page__block course-page__block--muted">
-                <h3 className="course-page__subhead">Пример решения</h3>
-                <pre className="course-page__pre">{data.coding_solution}</pre>
-              </div>
-            ) : null}
+            <CodeEditor 
+              courseId={courseId}
+              studentId={user.id}
+              task={data.coding_task || ""}
+              tests={data.tests || []}
+            />
           </section>
         ) : null}
+
+        <section className="dashboard-section" aria-labelledby="course-flashcards">
+          <h2 id="course-flashcards" className="dashboard-section-title">
+            Карточки для запоминания
+          </h2>
+          <FlashcardStudy
+            courseId={courseId}
+            studentId={user.id}
+          />
+        </section>
       </main>
     </div>
   );

@@ -1,40 +1,118 @@
 {
-  "currentStep": "pldf.implement",
+  "projectName": "StepikIn - Course Platform",
+  "lastUpdated": "2026-04-28",
+  "currentPhase": "beta-release",
+  "currentStep": "pldf.stabilization",
   "completedSteps": [
     "pldf.concept",
     "pldf.design",
-    "pldf.implement"
+    "pldf.implement",
+    "pldf.integration",
+    "pldf.bugfix"
   ],
   "plannedSteps": [
-    "pldf.tech"
+    "pldf.stabilization",
+    "pldf.feature-sprint-1-tests",
+    "pldf.feature-sprint-2-flashcards",
+    "pldf.feature-sprint-3-analytics"
   ],
   "stepStatus": {
     "pldf.concept": "completed",
     "pldf.design": "completed",
     "pldf.implement": "completed",
-    "pldf.tech": "planned"
+    "pldf.integration": "completed",
+    "pldf.bugfix": "completed",
+    "pldf.stabilization": "in-progress",
+    "pldf.feature-sprint-1-tests": "planned",
+    "pldf.feature-sprint-2-flashcards": "planned",
+    "pldf.feature-sprint-3-analytics": "planned"
+  },
+  "recentUpdates": [
+    {
+      "date": "2026-04-28",
+      "event": "Git merge upstream/main",
+      "details": "Подтянуты последние изменения: отображение прогресса, компоненты, возможность проходить курсы"
+    },
+    {
+      "date": "2026-04-28",
+      "event": "Решена проблема логина",
+      "details": "Установлен bcrypt<5, обновлены requirements.txt, скопирована правильная БД"
+    },
+    {
+      "date": "2026-04-28",
+      "event": "Создан детальный план проекта",
+      "details": "pldf.plan: 10 категорий работ, приоритизированы Tests и Flashcards"
+    }
+  ],
+  "releaseStatus": {
+    "version": "0.2.0-beta",
+    "status": "working",
+    "authenticatedUsers": ["teacher (teacher123)", "student (stpkn)", "3 other students"],
+    "coreFeatures": {
+      "login": "✅ working",
+      "courses": "✅ working",
+      "questions": "✅ working",
+      "progress": "✅ working",
+      "studentDashboard": "✅ working",
+      "teacherDashboard": "✅ working"
+    },
+    "knownLimitations": [
+      "Нет тестов для практики",
+      "Нет карточек для повторения",
+      "Нет детальной аналитики",
+      "CORS только для localhost",
+      "Нет rate limiting"
+    ]
   },
   "planningMetadata": {
-    "lastPlannedStep": "pldf.tech",
-    "planningPhase": "implementation-complete",
-    "totalStepsEstimated": 4,
+    "currentPhase": "stabilization",
+    "nextMajorFeature": "Practice Tests (Tests for Practice)",
+    "planningPhase": "feature-planning-complete",
+    "totalStepsEstimated": 8,
     "stepDependencies": {
-      "pldf.design": [
-        "pldf.concept"
-      ],
-      "pldf.implement": [
-        "pldf.design"
-      ],
-      "pldf.tech": [
-        "pldf.implement"
-      ]
+      "pldf.design": ["pldf.concept"],
+      "pldf.implement": ["pldf.design"],
+      "pldf.integration": ["pldf.implement"],
+      "pldf.bugfix": ["pldf.integration"],
+      "pldf.stabilization": ["pldf.bugfix"],
+      "pldf.feature-sprint-1-tests": ["pldf.stabilization"],
+      "pldf.feature-sprint-2-flashcards": ["pldf.feature-sprint-1-tests"],
+      "pldf.feature-sprint-3-analytics": ["pldf.feature-sprint-2-flashcards"]
     },
     "progressMetrics": {
-      "p1Coverage": {"covered": 6, "total": 6, "percentage": 100},
-      "p2Coverage": {"covered": 3, "total": 3, "percentage": 100},
-      "p3Coverage": {"covered": 4, "total": 4, "percentage": 100},
-      "overallProgress": 75
+      "p1Coverage": {"covered": 10, "total": 10, "percentage": 100},
+      "p2Coverage": {"covered": 8, "total": 8, "percentage": 100},
+      "p3Coverage": {"covered": 7, "total": 7, "percentage": 100},
+      "overallProgress": 100,
+      "coreCompleteness": "MVP working",
+      "nextSprint": "Sprint 1: Practice Tests (Est. 3-4 дня)"
+    },
+    "codeMetrics": {
+      "backendLines": 750,
+      "frontendLines": 1620,
+      "totalLines": 2370,
+      "componentCount": 15,
+      "modelCount": 8,
+      "endpointCount": 20
+    },
+    "database": {
+      "type": "SQLite",
+      "location": "course_platform.db (root) + backend/course_platform.db (backup)",
+      "tables": 7,
+      "testUsers": 4
+    },
+    "environment": {
+      "python": "3.14.2",
+      "node": "npm",
+      "framework": "FastAPI + React",
+      "status": "ready-for-development"
     }
+  },
+  "tasks": {
+    "completed": 15,
+    "inProgress": 1,
+    "planned": 50,
+    "blocked": 0
   }
 }
 

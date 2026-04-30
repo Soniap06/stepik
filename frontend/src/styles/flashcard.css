@@ -1,0 +1,727 @@
+/* Flashcard CSS with Light/Dark Theme Support */
+
+:root {
+  --fc-bg-primary: #ffffff;
+  --fc-bg-secondary: #f8fafc;
+  --fc-text-primary: #0f172a;
+  --fc-text-secondary: #64748b;
+  --fc-text-tertiary: #94a3b8;
+  --fc-border-color: #e2e8f0;
+  --fc-primary-color: #1070d0;
+  --fc-primary-light: #3b82f6;
+  --fc-error-color: #ef4444;
+  --fc-warning-color: #f59e0b;
+  --fc-success-color: #10b981;
+  --fc-card-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  --fc-card-shadow-hover: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] {
+  --fc-bg-primary: #020617;
+  --fc-bg-secondary: #1e293b;
+  --fc-text-primary: #f1f5f9;
+  --fc-text-secondary: #cbd5e1;
+  --fc-text-tertiary: #94a3b8;
+  --fc-border-color: #334155;
+  --fc-primary-color: #6366f1;
+  --fc-primary-light: #818cf8;
+  --fc-error-color: #fca5a5;
+  --fc-warning-color: #fcd34d;
+  --fc-success-color: #6ee7b7;
+  --fc-card-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  --fc-card-shadow-hover: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Flashcard Editor Styles */
+.flashcard-editor {
+  padding: 24px;
+  background: var(--fc-bg-primary);
+  border-radius: 12px;
+  max-width: 900px;
+}
+
+.flashcard-editor__header {
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--fc-border-color);
+  padding-bottom: 16px;
+}
+
+.flashcard-editor__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fc-text-primary);
+  margin: 0 0 8px 0;
+}
+
+.flashcard-editor__subtitle {
+  font-size: 14px;
+  color: var(--fc-text-secondary);
+  margin: 0;
+}
+
+.flashcard-editor__error {
+  padding: 12px 16px;
+  background: var(--fc-error-color);
+  color: white;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.flashcard-editor__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.flashcard-editor__card-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  gap: 16px;
+  align-items: start;
+  padding: 16px;
+  background: var(--fc-bg-secondary);
+  border: 1px solid var(--fc-border-color);
+  border-radius: 8px;
+}
+
+.flashcard-editor__card-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--fc-primary-color);
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.flashcard-editor__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.flashcard-editor__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flashcard-editor__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fc-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.flashcard-editor__textarea {
+  padding: 12px;
+  border: 1px solid var(--fc-border-color);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--fc-text-primary);
+  background: var(--fc-bg-primary);
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.flashcard-editor__textarea:focus {
+  outline: none;
+  border-color: var(--fc-primary-color);
+  box-shadow: 0 0 0 3px rgba(16, 112, 208, 0.1);
+}
+
+[data-theme="dark"] .flashcard-editor__textarea:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.flashcard-editor__remove-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--fc-border-color);
+  background: transparent;
+  color: var(--fc-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.flashcard-editor__remove-btn:hover:not(:disabled) {
+  background: var(--fc-error-color);
+  color: white;
+  border-color: var(--fc-error-color);
+}
+
+.flashcard-editor__remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.flashcard-editor__actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.flashcard-editor__add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--fc-border-color);
+  background: var(--fc-bg-primary);
+  color: var(--fc-primary-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flashcard-editor__add-btn:hover {
+  background: var(--fc-bg-secondary);
+  border-color: var(--fc-primary-color);
+}
+
+.flashcard-editor__footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid var(--fc-border-color);
+}
+
+.flashcard-editor__cancel-btn,
+.flashcard-editor__save-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flashcard-editor__cancel-btn {
+  background: var(--fc-bg-secondary);
+  color: var(--fc-text-primary);
+  border: 1px solid var(--fc-border-color);
+}
+
+.flashcard-editor__cancel-btn:hover:not(:disabled) {
+  background: var(--fc-border-color);
+}
+
+.flashcard-editor__save-btn {
+  background: var(--fc-primary-color);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 112, 208, 0.3);
+}
+
+.flashcard-editor__save-btn:hover:not(:disabled) {
+  background: var(--fc-primary-light);
+  box-shadow: 0 6px 16px rgba(16, 112, 208, 0.4);
+}
+
+[data-theme="dark"] .flashcard-editor__save-btn {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+[data-theme="dark"] .flashcard-editor__save-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.flashcard-editor__cancel-btn:disabled,
+.flashcard-editor__save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Flashcard Study Styles */
+.flashcard-study {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.flashcard-study__loading,
+.flashcard-study__error,
+.flashcard-study__empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--fc-text-secondary);
+}
+
+.flashcard-study__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.flashcard-study__empty span {
+  font-size: 48px;
+  color: var(--fc-primary-color);
+  opacity: 0.3;
+}
+
+.flashcard-study__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 8px;
+}
+
+.flashcard-study__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.flashcard-study__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--fc-primary-color);
+}
+
+.flashcard-study__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--fc-text-primary);
+  margin: 0;
+}
+
+.flashcard-study__meta {
+  text-align: right;
+}
+
+.flashcard-study__percent {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fc-text-secondary);
+}
+
+.flashcard-study__reset-btn {
+  margin-left: 12px;
+  padding: 8px 16px;
+  border: 1px solid var(--fc-border-color);
+  background: transparent;
+  color: var(--fc-primary-color);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.flashcard-study__reset-btn:hover {
+  background: var(--fc-bg-secondary);
+  border-color: var(--fc-primary-color);
+}
+
+.flashcard-study__progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--fc-border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.flashcard-study__progress-fill {
+  height: 100%;
+  background: var(--fc-primary-color);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.flashcard-study__card-container {
+  perspective: 1000px;
+  padding: 0 8px;
+  min-height: 300px;
+  max-height: 600px;
+  height: 50vh;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flashcard-study__card {
+  width: 100%;
+  height: 100%;
+  max-width: 500px;
+  aspect-ratio: 1;
+  cursor: pointer;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+  min-height: 300px;
+  max-height: 600px;
+}
+
+.flashcard-study__card.flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-study__card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flashcard-study__card-front,
+.flashcard-study__card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  border-radius: 12px;
+  box-shadow: var(--fc-card-shadow);
+  border: 1px solid var(--fc-border-color);
+  background: var(--fc-bg-primary);
+  transition: box-shadow 0.3s;
+}
+
+.flashcard-study__card:hover .flashcard-study__card-front,
+.flashcard-study__card:hover .flashcard-study__card-back {
+  box-shadow: var(--fc-card-shadow-hover);
+}
+
+.flashcard-study__card-back {
+  transform: rotateY(180deg);
+  background: var(--fc-bg-primary);
+}
+
+.flashcard-study__card-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fc-primary-color);
+  margin-bottom: 16px;
+}
+
+.flashcard-study__card-label span {
+  font-size: 18px;
+}
+
+.flashcard-study__card-content {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--fc-text-primary);
+  line-height: 1.4;
+  margin-bottom: 24px;
+  word-wrap: break-word;
+  max-width: 100%;
+}
+
+.flashcard-study__flip-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fc-text-tertiary);
+  margin-top: auto;
+  justify-content: center;
+}
+
+.flashcard-study__flip-hint span {
+  font-size: 16px;
+}
+
+.flashcard-study__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 0 8px;
+}
+
+.flashcard-study__nav-btn {
+  width: auto;
+  min-width: 80px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--fc-border-color);
+  background: transparent;
+  color: var(--fc-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.flashcard-study__nav-btn:hover:not(:disabled) {
+  background: var(--fc-bg-secondary);
+  color: var(--fc-primary-color);
+}
+
+.flashcard-study__nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.flashcard-study__flip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 32px;
+  background: var(--fc-primary-color);
+  color: white;
+  border: none;
+  border-radius: 28px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 112, 208, 0.3);
+  transition: all 0.2s;
+}
+
+.flashcard-study__flip-btn:hover {
+  background: var(--fc-primary-light);
+  box-shadow: 0 6px 16px rgba(16, 112, 208, 0.4);
+}
+
+[data-theme="dark"] .flashcard-study__flip-btn {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+[data-theme="dark"] .flashcard-study__flip-btn:hover {
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.flashcard-study__confidence {
+  padding: 0 8px;
+}
+
+.flashcard-study__confidence-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fc-text-secondary);
+  text-align: center;
+  margin: 0 0 16px 0;
+}
+
+.flashcard-study__confidence-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.flashcard-study__confidence-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 1px solid;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flashcard-study__confidence-btn span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confidence-learning {
+  border-color: var(--fc-error-color);
+  color: var(--fc-error-color);
+}
+
+.confidence-learning:hover {
+  background: var(--fc-error-color);
+  color: white;
+}
+
+.confidence-almost {
+  border-color: var(--fc-warning-color);
+  color: var(--fc-warning-color);
+}
+
+.confidence-almost:hover {
+  background: var(--fc-warning-color);
+  color: white;
+}
+
+.confidence-mastered {
+  border-color: var(--fc-success-color);
+  color: var(--fc-success-color);
+}
+
+.confidence-mastered:hover {
+  background: var(--fc-success-color);
+  color: white;
+}
+
+.flashcard-study__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 0 8px;
+}
+
+.flashcard-study__stat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--fc-bg-secondary);
+  border: 1px solid var(--fc-border-color);
+  border-radius: 8px;
+}
+
+.flashcard-study__stat-item span {
+  font-size: 24px;
+  color: var(--fc-primary-color);
+}
+
+.flashcard-study__stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fc-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.flashcard-study__stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fc-text-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .flashcard-study__card-container {
+    min-height: 250px;
+    max-height: 450px;
+    height: 40vh;
+  }
+
+  .flashcard-study__card {
+    min-height: 250px;
+    max-height: 450px;
+  }
+
+  .flashcard-editor {
+    padding: 16px;
+  }
+
+  .flashcard-editor__card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .flashcard-editor__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .flashcard-editor__footer {
+    flex-direction: column;
+  }
+
+  .flashcard-editor__cancel-btn,
+  .flashcard-editor__save-btn {
+    width: 100%;
+  }
+
+  .flashcard-study__card-front,
+  .flashcard-study__card-back {
+    padding: 24px;
+  }
+
+  .flashcard-study__card-content {
+    font-size: 18px;
+  }
+
+  .flashcard-study__controls {
+    gap: 12px;
+  }
+
+  .flashcard-study__confidence-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .flashcard-study__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .flashcard-study__card-container {
+    min-height: 200px;
+    max-height: 350px;
+    height: 35vh;
+  }
+
+  .flashcard-study__card {
+    min-height: 200px;
+    max-height: 350px;
+  }
+
+  .flashcard-study__card-front,
+  .flashcard-study__card-back {
+    padding: 16px;
+  }
+
+  .flashcard-study__card-content {
+    font-size: 14px;
+  }
+
+  .flashcard-study__title {
+    font-size: 16px;
+  }
+
+  .flashcard-study__confidence-btn {
+    padding: 12px 8px;
+    font-size: 11px;
+  }
+
+  .flashcard-study__nav-btn {
+    min-width: 70px;
+    height: 40px;
+    font-size: 12px;
+  }
+
+  .flashcard-study__flip-btn {
+    padding: 12px 20px;
+    font-size: 12px;
+  }
+}
